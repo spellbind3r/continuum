@@ -34,6 +34,7 @@ This project is for an app that allows the user to explore the globe and allows 
   - Customs and festivals
   - Clothing
 - **Interesting facts**
+- **Famous people**
 - **Food and Agriculture**
   - Unique crops
   - Diet and cuisine
