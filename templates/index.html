@@ -205,6 +205,54 @@
         .category-icon .icon {
             font-size: 18px;
         }
+
+        /* Loading spinner */
+        .spinner {
+            width: 50px;
+            height: 50px;
+            margin: 20px auto;
+            border: 4px solid #333;
+            border-top: 4px solid #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .loading-message p {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        /* Cache indicator */
+        .cache-badge {
+            display: inline-block;
+            background: #0f3460;
+            color: #4ade80;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-left: 10px;
+        }
+
+        /* Fade in animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -289,9 +337,15 @@
 
         async function fetchHistoricalInfo(lat, lng, year) {
             const infoPanel = document.getElementById('info-panel');
-            infoPanel.innerHTML = '<div class="loading">🔍 Searching through time...</div>';
+            infoPanel.innerHTML = `
+                <div class="loading-message">
+                    <div class="spinner"></div>
+                    <p>🔍 Searching through time...</p>
+                </div>
+            `;
 
             try {
+                const startTime = Date.now();
                 const response = await fetch('/explore', {
                     method: 'POST',
                     headers: {
@@ -301,9 +355,14 @@
                 });
 
                 const data = await response.json();
+                const loadTime = Date.now() - startTime;
+
+                // Add loading time info
+                data.loadTime = loadTime;
+
                 displayInfo(data);
             } catch (error) {
-                infoPanel.innerHTML = '<div class="loading">❌ Error fetching data</div>';
+                infoPanel.innerHTML = '<div class="loading-message"><p>❌ Error fetching data</p></div>';
                 console.error('Error:', error);
             }
         }
@@ -325,13 +384,17 @@
         function displayInfo(data) {
             const infoPanel = document.getElementById('info-panel');
 
+            const cacheIndicator = data.from_cache
+                ? `<span class="cache-badge">⚡ Cached (${data.loadTime}ms)</span>`
+                : `<span class="cache-badge" style="background: #1a1a2e; color: #999;">🌐 Fresh (${data.loadTime}ms)</span>`;
+
             let html = `
-                <div class="location-info">
-                    <h2>${data.location}</h2>
+                <div class="location-info fade-in">
+                    <h2>${data.location}${cacheIndicator}</h2>
                     <p>${data.year < 0 ? Math.abs(data.year) + ' BCE' : data.year + ' CE'}</p>
                 </div>
 
-                <div class="category-icons">
+                <div class="category-icons fade-in">
             `;
 
             // Add category icons
@@ -355,7 +418,7 @@
                 const icon = categoryIcons[category] || '📄';
 
                 html += `
-                    <div class="category" id="category-${category}">
+                    <div class="category fade-in" id="category-${category}">
                         <h3>${icon} ${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
                         <div class="category-content">${info.content}</div>
                         <div class="confidence-bar">

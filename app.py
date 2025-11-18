@@ -1,9 +1,57 @@
 from flask import Flask, render_template, jsonify, request
 import wikipediaapi
-import random
+import sqlite3
+import json
+import os
 
 app = Flask(__name__)
 wiki = wikipediaapi.Wikipedia('Continuum/1.0 (contact@example.com)', 'en')
+
+# Database setup
+DB_PATH = 'continuum_cache.db'
+
+def init_db():
+    """Initialize SQLite database for caching"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS wikipedia_cache (
+            location TEXT,
+            year INTEGER,
+            data TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (location, year)
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def get_cached_data(location, year):
+    """Retrieve cached data from database"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT data FROM wikipedia_cache WHERE location = ? AND year = ?',
+              (location, year))
+    result = c.fetchone()
+    conn.close()
+
+    if result:
+        return json.loads(result[0])
+    return None
+
+def cache_data(location, year, data):
+    """Store data in cache"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''
+        INSERT OR REPLACE INTO wikipedia_cache (location, year, data)
+        VALUES (?, ?, ?)
+    ''', (location, year, json.dumps(data)))
+    conn.commit()
+    conn.close()
+
+# Initialize database on startup
+init_db()
 
 @app.route('/')
 def index():
@@ -20,8 +68,18 @@ def explore():
     # Simple geocoding - map coordinates to known cities (for demo)
     location_name = get_nearest_city(lat, lng)
 
-    # Fetch Wikipedia info
+    # Check cache first
+    cached_info = get_cached_data(location_name, year)
+    if cached_info:
+        cached_info['from_cache'] = True
+        return jsonify(cached_info)
+
+    # Fetch Wikipedia info if not cached
     info = fetch_historical_info(location_name, year)
+    info['from_cache'] = False
+
+    # Cache the result
+    cache_data(location_name, year, info)
 
     return jsonify(info)
 
@@ -36,6 +94,13 @@ def get_nearest_city(lat, lng):
         'London': (51.5, -0.1),
         'Paris': (48.9, 2.4),
         'Delhi': (28.6, 77.2),
+        'Istanbul': (41.0, 28.9),
+        'Venice': (45.4, 12.3),
+        'Kyiv': (50.5, 30.5),
+        'Jerusalem': (31.8, 35.2),
+        "Xi'an": (34.3, 108.9),
+        'Mexico City': (19.4, -99.1),
+        'Cuzco': (-13.5, -71.9),
     }
 
     # Find closest city (simple distance calc)
