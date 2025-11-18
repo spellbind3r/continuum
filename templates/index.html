@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continuum - Historical World Explorer</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        header {
+            grid-column: 1 / -1;
+            background: #16213e;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #0f3460;
+            font-size: 28px;
+        }
+
+        .time-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .time-slider {
+            width: 300px;
+        }
+
+        #year-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #e94560;
+            min-width: 100px;
+        }
+
+        #map {
+            height: 100%;
+            border-radius: 8px;
+            border: 2px solid #0f3460;
+        }
+
+        .info-panel {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            border: 2px solid #0f3460;
+        }
+
+        .category {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #1a1a2e;
+            border-radius: 6px;
+            border-left: 4px solid #e94560;
+        }
+
+        .category h3 {
+            color: #e94560;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .category-content {
+            color: #ddd;
+            line-height: 1.6;
+        }
+
+        .confidence-bar {
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #f39c12);
+            transition: width 0.3s ease;
+        }
+
+        .confidence-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .location-info {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .location-info h2 {
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .location-info p {
+            color: #aaa;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            color: #999;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 Continuum</h1>
+            <div class="time-control">
+                <label for="time-slider">Time Travel:</label>
+                <input type="range" id="time-slider" class="time-slider"
+                       min="-3000" max="2024" value="2024" step="10">
+                <span id="year-display">2024 CE</span>
+            </div>
+        </header>
+
+        <div id="map"></div>
+
+        <div class="info-panel" id="info-panel">
+            <div class="empty-state">
+                <h3>👆 Click anywhere on the map</h3>
+                <p>Explore history across time and space</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([30, 0], 2);
+
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+        }).addTo(map);
+
+        // Current year
+        let currentYear = 2024;
+
+        // Time slider
+        const timeSlider = document.getElementById('time-slider');
+        const yearDisplay = document.getElementById('year-display');
+
+        timeSlider.addEventListener('input', (e) => {
+            currentYear = parseInt(e.target.value);
+            updateYearDisplay();
+        });
+
+        function updateYearDisplay() {
+            if (currentYear < 0) {
+                yearDisplay.textContent = `${Math.abs(currentYear)} BCE`;
+            } else {
+                yearDisplay.textContent = `${currentYear} CE`;
+            }
+        }
+
+        // Map click handler
+        let currentMarker = null;
+
+        map.on('click', async (e) => {
+            const { lat, lng } = e.latlng;
+
+            // Add or move marker
+            if (currentMarker) {
+                map.removeLayer(currentMarker);
+            }
+            currentMarker = L.marker([lat, lng]).addTo(map);
+
+            // Fetch historical info
+            await fetchHistoricalInfo(lat, lng, currentYear);
+        });
+
+        async function fetchHistoricalInfo(lat, lng, year) {
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.innerHTML = '<div class="loading">🔍 Searching through time...</div>';
+
+            try {
+                const response = await fetch('/explore', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ lat, lng, year })
+                });
+
+                const data = await response.json();
+                displayInfo(data);
+            } catch (error) {
+                infoPanel.innerHTML = '<div class="loading">❌ Error fetching data</div>';
+                console.error('Error:', error);
+            }
+        }
+
+        function displayInfo(data) {
+            const infoPanel = document.getElementById('info-panel');
+
+            let html = `
+                <div class="location-info">
+                    <h2>${data.location}</h2>
+                    <p>${data.year < 0 ? Math.abs(data.year) + ' BCE' : data.year + ' CE'}</p>
+                </div>
+            `;
+
+            // Display categories
+            for (const [category, info] of Object.entries(data.categories)) {
+                const confidencePercent = Math.round(info.confidence * 100);
+                const confidenceText = getConfidenceText(info.confidence);
+
+                html += `
+                    <div class="category">
+                        <h3>${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
+                        <div class="category-content">${info.content}</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
+                        </div>
+                        <div class="confidence-label">${confidenceText} (${confidencePercent}% confidence)</div>
+                    </div>
+                `;
+            }
+
+            infoPanel.innerHTML = html;
+        }
+
+        function getConfidenceText(confidence) {
+            if (confidence >= 0.8) return '✓ Well-documented';
+            if (confidence >= 0.6) return '⚠ Generally accepted';
+            if (confidence >= 0.4) return '⚠ Limited evidence';
+            return '❓ Speculative';
+        }
+
+        // Initialize year display
+        updateYearDisplay();
+    </script>
+</body>
+</html>

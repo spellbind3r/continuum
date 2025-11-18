@@ -17,64 +17,123 @@ This document provides comprehensive guidance for AI assistants working on the C
 
 **Project Name:** Continuum
 **Repository:** spellbind3r/continuum
-**Status:** Initial setup phase
+**Status:** Active development - MVP phase
+**Developer:** Solo project, limited free time, learning-focused
+**Goal:** Interactive time-traveling world explorer for learning history and geography
 
 ### Purpose
 
-[To be filled: Brief description of what this project does and its main objectives]
+Continuum is an interactive application that allows users to explore the globe and travel through time virtually, learning history and geography in a creative, visually rich, and dynamic manner. Users can click anywhere on Earth, select any time period, and discover what was happening at that location.
+
+**Core Vision:**
+- Explore any place on Earth at any point in time
+- Learn endlessly with high-quality, targeted information
+- Feel connected to the whole world and its history
+- Experience a deep sense of awe about human civilization
+- Be transparent about uncertainty ("I don't know" is acceptable)
+
+**Inspired by:** Timelines of World History poster/book, but interactive and multidimensional
+
+### Development Philosophy
+
+**"See Progress Today, Improve Tomorrow"**
+
+This project follows an incremental, learning-focused approach:
+1. Build the simplest version that demonstrates the core idea
+2. Get something working you can show and click
+3. Add one improvement at a time
+4. Learn modern web development gradually
+5. Avoid complexity until it's needed
+
+**Key Principles:**
+- ✅ Simple is better than perfect
+- ✅ Working is better than planned
+- ✅ One feature at a time
+- ✅ Learn by building
+- ✅ Progress over perfection
 
 ### Technology Stack
 
-[To be filled: List of main technologies, frameworks, and tools used]
+**Current Stack (v0.1 - Simple Start):**
+- **Language:** Python 3.8+
+- **Backend:** Flask (simple, easy to learn)
+- **Frontend:** Plain HTML + CSS + JavaScript (no frameworks yet)
+- **Map:** Leaflet.js (simple 2D map via CDN)
+- **Data Source:** Wikipedia API (real-time)
+- **Database:** None yet (will add SQLite for caching in Phase 1)
 
-Example structure:
-- **Language:** [e.g., Python, JavaScript, TypeScript, Go]
-- **Framework:** [e.g., React, Django, FastAPI, Express]
-- **Database:** [e.g., PostgreSQL, MongoDB, Redis]
-- **Testing:** [e.g., Jest, pytest, Go test]
-- **Build Tools:** [e.g., webpack, vite, make]
-- **CI/CD:** [e.g., GitHub Actions, GitLab CI]
+**Why This Stack:**
+- Matches developer's background (SQL, Java, C++, XSL)
+- No build tools needed
+- No npm/webpack complexity
+- Can see changes immediately (just refresh browser)
+- Easy to understand and debug
+- Can upgrade to more powerful tools later
+
+**Future Evolution:**
+- Phase 1: Add SQLite for caching
+- Phase 2: Improve data quality (Wikidata, curated sources)
+- Phase 3: Upgrade to 3D globe (React-Globe.gl or Cesium)
+- Phase 4: Advanced features (connections, timelines)
+- Phase 5: Production-ready (PostgreSQL, proper deployment)
 
 ## Repository Structure
 
+**Current Structure (v0.1):**
+
 ```
 continuum/
-├── .git/                  # Git metadata
-├── CLAUDE.md             # This file - AI assistant guide
-├── README.md             # Project documentation
-├── [src/]                # Source code (to be created)
-├── [tests/]              # Test files (to be created)
-├── [docs/]               # Additional documentation (to be created)
-├── [config/]             # Configuration files (to be created)
-└── [scripts/]            # Build and utility scripts (to be created)
+├── app.py                      # Flask server (main backend logic)
+├── templates/
+│   └── index.html             # Frontend (map + UI)
+├── requirements.txt           # Python dependencies
+├── README.md                  # User-facing documentation
+├── CLAUDE.md                  # This file - AI assistant guide
+├── continuum_app_initial_idea.md  # Original vision document
+└── GPT-1.rtf                  # Previous AI consultation notes
 ```
 
-### Key Directories
+**Key Files:**
 
-**Update this section as the project structure evolves:**
+- **app.py** - Flask web server
+  - `/` route serves the HTML page
+  - `/explore` endpoint handles location queries
+  - `get_nearest_city()` - maps coordinates to major cities
+  - `fetch_historical_info()` - queries Wikipedia API
+  - Simple confidence scoring logic
 
-- **src/** - Main application source code
-  - Core business logic
-  - API endpoints / handlers
-  - Data models
-  - Utilities and helpers
+- **templates/index.html** - Complete frontend in one file
+  - Leaflet.js map integration
+  - Time slider (3000 BCE to 2024 CE)
+  - Click handler for location queries
+  - Knowledge category display
+  - Confidence visualization
 
-- **tests/** - Test suites
-  - Unit tests
-  - Integration tests
-  - End-to-end tests
-  - Test fixtures and mocks
+- **requirements.txt** - Just 2 dependencies
+  - Flask (web server)
+  - Wikipedia-API (data source)
 
-- **docs/** - Documentation
-  - API documentation
-  - Architecture diagrams
-  - Design decisions
-  - Deployment guides
+**Future Structure (as project grows):**
 
-- **config/** - Configuration files
-  - Environment-specific configs
-  - Application settings
-  - External service configurations
+```
+continuum/
+├── app.py
+├── templates/
+│   └── index.html
+├── static/                    # CSS, JS files (when we split them out)
+│   ├── css/
+│   └── js/
+├── data/                      # Cached data, SQLite database
+│   └── continuum.db
+├── utils/                     # Helper modules
+│   ├── geocoding.py
+│   ├── wikipedia_client.py
+│   └── confidence.py
+├── requirements.txt
+└── README.md
+```
+
+**Note:** Keep it simple! Don't create these directories until you need them.
 
 ## Development Workflow
 
@@ -118,86 +177,211 @@ continuum/
    - Reference related issues
    - Add test plan
 
+### Incremental Development Workflow
+
+**CRITICAL:** This project follows an incremental, learn-as-you-go approach. Each session should:
+
+1. **Start Small:** Pick ONE thing to add or fix
+2. **Make It Work:** Get it functional, don't worry about perfect
+3. **Test It:** Click around, see if it works
+4. **Commit:** Save your progress
+5. **Show Someone:** Even if it's just yourself tomorrow
+6. **Pick Next Thing:** Choose one improvement for next session
+
+**Example Session Progression:**
+
+```
+Session 1: Get the basic app running ✅
+Session 2: Add SQLite caching for Wikipedia results
+Session 3: Improve city detection (add more cities)
+Session 4: Better confidence scoring algorithm
+Session 5: Add "I don't know" messaging for low confidence
+Session 6: Make UI prettier
+Session 7: Add one more knowledge category
+...and so on
+```
+
+### Working with AI Assistants (Critical!)
+
+This project was kickstarted with AI help. Here's how to work with AI effectively:
+
+#### ✅ DO: Be Specific and Incremental
+
+**Good Prompts:**
+- "Add a function to cache Wikipedia results in SQLite with location, year, and content fields"
+- "Update the confidence scoring to consider article length and number of citations"
+- "Add a new knowledge category called 'Economy' that extracts economic information"
+
+**Bad Prompts:**
+- "Make the app better"
+- "Implement all the features from the architecture"
+- "Refactor everything"
+
+#### ✅ DO: Protect Against Over-Refactoring
+
+Always include this in your prompts when fixing bugs:
+
+```
+"ONLY fix this specific error. Do NOT refactor, rename functions,
+or change file structure. Make the MINIMAL change needed."
+```
+
+#### ✅ DO: Define the Interface First
+
+```
+"I want to add caching. First, just show me what the function
+signature and database schema should look like. Don't implement
+everything yet."
+```
+
+Then review, adjust, and ask for implementation.
+
+#### ❌ DON'T: Let AI Rewrite Large Chunks
+
+If AI suggests rewriting more than ~50 lines at once, stop and ask:
+- "Can we do this in smaller steps?"
+- "What's the minimal change to make X work?"
+
+#### ❌ DON'T: Accept Solutions You Don't Understand
+
+If AI gives you code you can't follow:
+- "Explain this code line by line"
+- "Is there a simpler way to do this?"
+- "Can you add comments explaining what each part does?"
+
 ### Commit Message Conventions
 
-Follow conventional commits format:
+Keep it simple for this project:
 
 ```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
+<type>: <what you did>
 ```
-
-**Types:**
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation changes
-- `style:` - Code style changes (formatting, etc.)
-- `refactor:` - Code refactoring
-- `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
-- `perf:` - Performance improvements
 
 **Examples:**
-- `feat(auth): add JWT token authentication`
-- `fix(api): resolve null pointer in user endpoint`
-- `docs(readme): update installation instructions`
-- `refactor(db): optimize query performance`
+- `feat: add SQLite caching for Wikipedia results`
+- `fix: city detection now works for southern hemisphere`
+- `improve: better confidence scoring algorithm`
+- `ui: made the info panel prettier`
+- `docs: updated README with new features`
+
+**No need for complex conventional commits** - just make it clear what changed!
 
 ## Code Conventions
 
-### General Principles
+### Keep It Simple
 
-1. **Clarity over Cleverness:** Write code that is easy to understand
-2. **DRY (Don't Repeat Yourself):** Extract common patterns into reusable functions
-3. **SOLID Principles:** Follow object-oriented design principles where applicable
-4. **Error Handling:** Always handle errors gracefully
-5. **Security First:** Validate inputs, sanitize outputs, avoid common vulnerabilities
+For this learning project, don't worry about perfect code style. Focus on:
 
-### Language-Specific Conventions
+1. **Readable:** Can you understand it when you come back tomorrow?
+2. **Functional:** Does it work?
+3. **Commented:** Did you explain the tricky parts?
 
-[Update based on your primary language]
+### Python Conventions (Loose Guidelines)
 
-#### For Python:
-- Follow PEP 8 style guide
-- Use type hints for function signatures
-- Docstrings for all public functions/classes
-- Maximum line length: 100 characters
-- Use `black` for formatting
-- Use `pylint` or `flake8` for linting
+- Use snake_case for functions: `get_historical_info()`
+- Use descriptive variable names: `confidence_score` not `cs`
+- Add comments when something is non-obvious
+- Handle errors with try/except when calling external APIs
+- Keep functions short (under 50 lines when possible)
 
-#### For JavaScript/TypeScript:
-- Follow ESLint configuration
-- Use TypeScript for type safety
-- Prefer `const` over `let`, avoid `var`
-- Use async/await over callbacks
-- JSDoc comments for public APIs
-- Maximum line length: 100 characters
+### JavaScript/HTML Conventions (In templates/index.html)
 
-#### For Go:
-- Follow `gofmt` formatting
-- Use `golint` and `go vet`
-- Write idiomatic Go code
-- Handle all errors explicitly
-- Use meaningful variable names
+- Use camelCase for JavaScript variables: `currentYear`
+- Use kebab-case for HTML ids: `year-display`
+- Keep JavaScript simple - no fancy frameworks yet
+- Comment any complex logic
 
-### Naming Conventions
+### When to Refactor
 
-- **Files:** Use lowercase with hyphens or underscores (e.g., `user-service.ts`, `user_service.py`)
-- **Functions:** Use camelCase (JavaScript) or snake_case (Python)
-- **Classes:** Use PascalCase
-- **Constants:** Use UPPER_SNAKE_CASE
-- **Variables:** Use descriptive names (avoid single letters except in loops)
+**Don't refactor** until:
+- You've copy-pasted the same code 3+ times
+- A function is over 100 lines
+- You can't understand your own code from last week
 
-### Code Comments
+**Then refactor** by:
+- Extracting repeated code into a function
+- Breaking big functions into smaller ones
+- Adding helpful comments
 
-- Write comments for **why**, not **what**
-- Keep comments up-to-date with code changes
-- Use TODO comments with context: `// TODO(name): Description`
-- Document complex algorithms or business logic
-- Remove commented-out code before committing
+## Content Philosophy
+
+### Transparent Uncertainty
+
+Continuum embraces **"I don't know"** as a feature, not a bug.
+
+**Core Principles:**
+
+1. **Scholarly Consensus First**
+   - Wikipedia and peer-reviewed sources prioritized
+   - Multiple sources increase confidence
+   - Contemporary accounts valued highly
+
+2. **Honest About Gaps**
+   - Low confidence = explicitly state "Limited information"
+   - Empty regions stay dark (low brightness)
+   - Better to say "unknown" than to guess
+
+3. **Interesting > Boring (But Labeled)**
+   - Apocryphal facts are OK if labeled clearly
+   - Example: "It was long believed that... but actually..."
+   - Engage with stories, but always follow with truth
+
+4. **Balanced Views on Controversies**
+   - Present multiple perspectives on disputed events
+   - Weight by scholarly consensus
+   - Show confidence breakdown (e.g., "68% of scholars support view A")
+   - Avoid fringe theories unless in special "controversy mode"
+
+### Confidence Scoring
+
+**Current Simple Algorithm:**
+```python
+confidence = min(0.9, 0.5 + len(article_text) / 2000)
+```
+
+**Confidence Levels:**
+- **0.8-1.0:** "Well-documented" (bright on map)
+- **0.6-0.8:** "Generally accepted" (medium brightness)
+- **0.4-0.6:** "Limited evidence" (dim)
+- **0.0-0.4:** "Speculative" / "Unknown" (dark)
+
+**Future Improvements:**
+- Factor in number of sources
+- Check for cross-referencing
+- Temporal proximity (contemporary sources score higher)
+- Source quality (peer-reviewed > general web)
+
+### Knowledge Categories
+
+**Current Categories:**
+1. **Overview** - General information about the place/time
+2. **Politics** - Government, rulers, empires
+3. **Culture** - Language, art, literature
+4. **Religion** - Beliefs, temples, practices
+
+**Future Categories:**
+5. **Science & Technology** - Discoveries, inventions, tools
+6. **Economy** - Trade, agriculture, resources
+7. **Diplomacy** - Allies, enemies, relations
+8. **Society** - Social structure, customs, daily life
+9. **Food & Agriculture** - Diet, crops, cuisine
+10. **Interesting Facts** - Notable events, legends, mysteries
+
+### Handling Controversial Topics
+
+**Examples:**
+
+**Palestine/Kashmir/Other Territorial Disputes:**
+- Show historical evolution of boundaries
+- Present perspectives from all sides
+- Label based on year and source
+- Scholarly consensus weighted most
+
+**Cultural/Historical Controversies:**
+- Present mainstream scholarly view first
+- Note alternative interpretations exist
+- Provide source counts for each view
+- Allow "Explore controversy" mode (future feature)
 
 ## Testing Strategy
 
