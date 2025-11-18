@@ -47,19 +47,42 @@
 
         .time-control {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 15px;
+            gap: 8px;
+            flex: 1;
+            max-width: 600px;
+        }
+
+        .time-slider-container {
+            width: 100%;
+            position: relative;
         }
 
         .time-slider {
-            width: 300px;
+            width: 100%;
+        }
+
+        .time-markers {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 5px;
+            font-size: 11px;
+            color: #999;
+        }
+
+        .time-marker {
+            text-align: center;
+            flex: 1;
         }
 
         #year-display {
             font-size: 20px;
             font-weight: bold;
             color: #e94560;
-            min-width: 100px;
+            min-width: 120px;
+            text-align: center;
         }
 
         #map {
@@ -147,6 +170,41 @@
             color: #999;
             margin-bottom: 10px;
         }
+
+        .category-icons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .category-icon {
+            background: #1a1a2e;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .category-icon:hover {
+            background: #0f3460;
+            border-color: #e94560;
+            transform: translateY(-2px);
+        }
+
+        .category-icon.active {
+            background: #0f3460;
+            border-color: #e94560;
+        }
+
+        .category-icon .icon {
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -154,10 +212,19 @@
         <header>
             <h1>🌍 Continuum</h1>
             <div class="time-control">
-                <label for="time-slider">Time Travel:</label>
-                <input type="range" id="time-slider" class="time-slider"
-                       min="-3000" max="2024" value="2024" step="10">
                 <span id="year-display">2024 CE</span>
+                <div class="time-slider-container">
+                    <input type="range" id="time-slider" class="time-slider"
+                           min="-3000" max="2024" value="2024" step="10">
+                    <div class="time-markers">
+                        <div class="time-marker">3000 BCE</div>
+                        <div class="time-marker">2000 BCE</div>
+                        <div class="time-marker">1000 BCE</div>
+                        <div class="time-marker">0</div>
+                        <div class="time-marker">1000 CE</div>
+                        <div class="time-marker">2000 CE</div>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -241,6 +308,20 @@
             }
         }
 
+        // Category icons mapping
+        const categoryIcons = {
+            'overview': '📋',
+            'politics': '⚖️',
+            'culture': '🎨',
+            'religion': '🕌',
+            'science': '🔬',
+            'economy': '💰',
+            'diplomacy': '🤝',
+            'society': '👥',
+            'food': '🍽️',
+            'facts': '💡'
+        };
+
         function displayInfo(data) {
             const infoPanel = document.getElementById('info-panel');
 
@@ -249,16 +330,33 @@
                     <h2>${data.location}</h2>
                     <p>${data.year < 0 ? Math.abs(data.year) + ' BCE' : data.year + ' CE'}</p>
                 </div>
+
+                <div class="category-icons">
             `;
+
+            // Add category icons
+            for (const [category, info] of Object.entries(data.categories)) {
+                const icon = categoryIcons[category] || '📄';
+                const displayName = category.charAt(0).toUpperCase() + category.slice(1);
+                html += `
+                    <div class="category-icon" onclick="scrollToCategory('${category}')">
+                        <span class="icon">${icon}</span>
+                        <span>${displayName}</span>
+                    </div>
+                `;
+            }
+
+            html += '</div>';
 
             // Display categories
             for (const [category, info] of Object.entries(data.categories)) {
                 const confidencePercent = Math.round(info.confidence * 100);
                 const confidenceText = getConfidenceText(info.confidence);
+                const icon = categoryIcons[category] || '📄';
 
                 html += `
-                    <div class="category">
-                        <h3>${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
+                    <div class="category" id="category-${category}">
+                        <h3>${icon} ${category.charAt(0).toUpperCase() + category.slice(1)}</h3>
                         <div class="category-content">${info.content}</div>
                         <div class="confidence-bar">
                             <div class="confidence-fill" style="width: ${confidencePercent}%"></div>
@@ -269,6 +367,18 @@
             }
 
             infoPanel.innerHTML = html;
+        }
+
+        function scrollToCategory(category) {
+            const element = document.getElementById('category-' + category);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Highlight active category icon
+                document.querySelectorAll('.category-icon').forEach(icon => {
+                    icon.classList.remove('active');
+                });
+                event.target.closest('.category-icon').classList.add('active');
+            }
         }
 
         function getConfidenceText(confidence) {
