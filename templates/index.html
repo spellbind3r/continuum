@@ -254,7 +254,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Debug panel */
+        /* Debug panel and controls */
         .debug-toggle {
             position: fixed;
             bottom: 20px;
@@ -273,6 +273,42 @@
         .debug-toggle:hover {
             background: #e94560;
             transform: scale(1.05);
+        }
+
+        .refresh-button {
+            position: fixed;
+            bottom: 20px;
+            right: 160px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: 2px solid #667eea;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .refresh-button.show {
+            display: block;
+        }
+
+        .refresh-button:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .refresh-button:active {
+            transform: scale(0.98);
+        }
+
+        .refresh-button.refreshing {
+            opacity: 0.6;
+            cursor: wait;
         }
 
         .debug-panel {
@@ -380,7 +416,8 @@
         </div>
     </div>
 
-    <!-- Debug Panel -->
+    <!-- Debug Panel and Controls -->
+    <button class="refresh-button" id="refresh-button" onclick="forceRefresh()">🔄 Dig Deeper</button>
     <button class="debug-toggle" onclick="toggleDebug()">🔧 Debug</button>
     <div class="debug-panel" id="debug-panel">
         <h3>🔍 Debug Information</h3>
@@ -497,16 +534,19 @@
             // Store location for slider-triggered refreshes
             lastClickedLocation = { lat, lng };
 
+            // Show refresh button
+            document.getElementById('refresh-button').classList.add('show');
+
             // Fetch historical info
             await fetchHistoricalInfo(lat, lng, currentYear);
         });
 
-        async function fetchHistoricalInfo(lat, lng, year) {
+        async function fetchHistoricalInfo(lat, lng, year, bypassCache = false) {
             const infoPanel = document.getElementById('info-panel');
             infoPanel.innerHTML = `
                 <div class="loading-message">
                     <div class="spinner"></div>
-                    <p>🔍 Searching through time...</p>
+                    <p>🔍 ${bypassCache ? 'Digging deeper...' : 'Searching through time...'}</p>
                 </div>
             `;
 
@@ -517,7 +557,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ lat, lng, year })
+                    body: JSON.stringify({ lat, lng, year, bypass_cache: bypassCache })
                 });
 
                 const data = await response.json();
@@ -527,7 +567,7 @@
                 data.loadTime = loadTime;
 
                 // Update debug panel
-                updateDebugPanel({ lat, lng, year }, data, loadTime);
+                updateDebugPanel({ lat, lng, year, bypass_cache: bypassCache }, data, loadTime);
 
                 displayInfo(data);
             } catch (error) {
@@ -626,6 +666,30 @@
             panel.classList.toggle('show');
         }
 
+        async function forceRefresh() {
+            if (!lastClickedLocation) {
+                alert('Please click on a location first!');
+                return;
+            }
+
+            const button = document.getElementById('refresh-button');
+            button.classList.add('refreshing');
+            button.textContent = '🔄 Refreshing...';
+
+            try {
+                // Force bypass cache
+                await fetchHistoricalInfo(
+                    lastClickedLocation.lat,
+                    lastClickedLocation.lng,
+                    currentYear,
+                    true // bypass_cache
+                );
+            } finally {
+                button.classList.remove('refreshing');
+                button.textContent = '🔄 Dig Deeper';
+            }
+        }
+
         function updateDebugPanel(requestData, responseData, loadTime) {
             const debugContent = document.getElementById('debug-content');
 
@@ -641,7 +705,7 @@ POST /explore
 {
   "lat": ${requestData.lat.toFixed(2)},
   "lng": ${requestData.lng.toFixed(2)},
-  "year": ${requestData.year}
+  "year": ${requestData.year}${requestData.bypass_cache ? ',\n  "bypass_cache": true' : ''}
 }</div>
                 </div>
 

@@ -131,19 +131,21 @@ def explore():
     lat = data.get('lat')
     lng = data.get('lng')
     year = data.get('year', 2024)
+    bypass_cache = data.get('bypass_cache', False)
 
     # Simple geocoding - map coordinates to known cities (for demo)
     location_name = get_nearest_city(lat, lng)
 
-    # Check cache first
-    cached_info = get_cached_data(location_name, year)
-    if cached_info:
-        cached_info['from_cache'] = True
-        cached_info['debug_info'] = {
-            'source_order': ['cache'],
-            'cache_hit': True
-        }
-        return jsonify(cached_info)
+    # Check cache first (unless bypassing)
+    if not bypass_cache:
+        cached_info = get_cached_data(location_name, year)
+        if cached_info:
+            cached_info['from_cache'] = True
+            cached_info['debug_info'] = {
+                'source_order': ['cache'],
+                'cache_hit': True
+            }
+            return jsonify(cached_info)
 
     # Try knowledge base first
     kb_info = query_knowledge_base(location_name, year)
@@ -152,8 +154,9 @@ def explore():
         # Knowledge base has data for this period
         kb_info['from_cache'] = False
         kb_info['debug_info'] = {
-            'source_order': ['knowledge_base'],
+            'source_order': ['cache (bypassed)', 'knowledge_base'] if bypass_cache else ['knowledge_base'],
             'knowledge_base_hit': True,
+            'cache_bypassed': bypass_cache,
             'period': kb_info.get('period'),
             'source_page': kb_info.get('source_page')
         }
@@ -166,9 +169,10 @@ def explore():
     wiki_info = fetch_historical_info(location_name, year)
     wiki_info['from_cache'] = False
     wiki_info['debug_info'] = {
-        'source_order': ['knowledge_base', 'wikipedia_api'],
+        'source_order': ['cache (bypassed)', 'knowledge_base', 'wikipedia_api'] if bypass_cache else ['knowledge_base', 'wikipedia_api'],
         'knowledge_base_hit': False,
-        'wikipedia_api_hit': True
+        'wikipedia_api_hit': True,
+        'cache_bypassed': bypass_cache
     }
 
     # Cache the result
