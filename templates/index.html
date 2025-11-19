@@ -356,14 +356,15 @@
                 <span id="year-display">2024 CE</span>
                 <div class="time-slider-container">
                     <input type="range" id="time-slider" class="time-slider"
-                           min="-3000" max="2024" value="2024" step="10">
+                           min="0" max="100" value="100" step="1">
                     <div class="time-markers">
-                        <div class="time-marker">3000 BCE</div>
-                        <div class="time-marker">2000 BCE</div>
-                        <div class="time-marker">1000 BCE</div>
-                        <div class="time-marker">0</div>
-                        <div class="time-marker">1000 CE</div>
-                        <div class="time-marker">2000 CE</div>
+                        <div class="time-marker" style="left: 0%;">3000 BCE</div>
+                        <div class="time-marker" style="left: 20%;">2000 BCE</div>
+                        <div class="time-marker" style="left: 30%;">0 CE</div>
+                        <div class="time-marker" style="left: 45%;">Medieval</div>
+                        <div class="time-marker" style="left: 60%;">1500</div>
+                        <div class="time-marker" style="left: 80%;">1900</div>
+                        <div class="time-marker" style="left: 100%;">Today</div>
                     </div>
                 </div>
             </div>
@@ -404,18 +405,65 @@
         // Current year
         let currentYear = 2024;
 
+        // Logarithmic time slider conversion
+        // Maps slider position (0-100) to years with more detail for recent history
+        function sliderToYear(position) {
+            // Three-phase logarithmic scale:
+            // 0-30: -3000 to -100 (ancient history, less detail)
+            // 30-60: -100 to 500 (classical/medieval, medium detail)
+            // 60-100: 500 to 2024 (modern history, high detail)
+
+            if (position <= 30) {
+                // Ancient: -3000 to -100
+                const t = position / 30;
+                return Math.round(-3000 + t * 2900);
+            } else if (position <= 60) {
+                // Classical/Medieval: -100 to 500
+                const t = (position - 30) / 30;
+                return Math.round(-100 + t * 600);
+            } else {
+                // Modern: 500 to 2024
+                const t = (position - 60) / 40;
+                return Math.round(500 + t * 1524);
+            }
+        }
+
+        function yearToSlider(year) {
+            // Reverse mapping for initialization
+            if (year <= -100) {
+                const t = (year + 3000) / 2900;
+                return Math.round(t * 30);
+            } else if (year <= 500) {
+                const t = (year + 100) / 600;
+                return Math.round(30 + t * 30);
+            } else {
+                const t = (year - 500) / 1524;
+                return Math.round(60 + t * 40);
+            }
+        }
+
         // Time slider
         const timeSlider = document.getElementById('time-slider');
         const yearDisplay = document.getElementById('year-display');
 
         timeSlider.addEventListener('input', (e) => {
-            currentYear = parseInt(e.target.value);
+            const position = parseInt(e.target.value);
+            let year = sliderToYear(position);
+
+            // Handle year zero: skip from -1 to 1
+            if (year === 0) {
+                year = (position > 50) ? 1 : -1;
+            }
+
+            currentYear = year;
             updateYearDisplay();
         });
 
         function updateYearDisplay() {
             if (currentYear < 0) {
                 yearDisplay.textContent = `${Math.abs(currentYear)} BCE`;
+            } else if (currentYear === 0) {
+                yearDisplay.textContent = '1 BCE'; // Should never hit this
             } else {
                 yearDisplay.textContent = `${currentYear} CE`;
             }
