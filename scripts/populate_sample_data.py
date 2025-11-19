@@ -9,8 +9,60 @@ knowledge base system.
 
 import sqlite3
 
+def init_knowledge_db():
+    """Initialize knowledge base database with schema"""
+    conn = sqlite3.connect('continuum_knowledge.db')
+    c = conn.cursor()
+
+    # Historical periods table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS historical_periods (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            location TEXT NOT NULL,
+            period_name TEXT NOT NULL,
+            start_year INTEGER,
+            end_year INTEGER,
+            description TEXT,
+            source_page TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(location, period_name)
+        )
+    ''')
+
+    # Period facts by category
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS period_facts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            period_id INTEGER NOT NULL,
+            category TEXT NOT NULL,
+            content TEXT NOT NULL,
+            confidence FLOAT DEFAULT 0.8,
+            source_section TEXT,
+            FOREIGN KEY (period_id) REFERENCES historical_periods(id)
+        )
+    ''')
+
+    # Year-specific events
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS year_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            year INTEGER NOT NULL,
+            location TEXT NOT NULL,
+            event TEXT NOT NULL,
+            category TEXT,
+            source_page TEXT
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+    print("✓ Initialized knowledge base schema")
+
 def populate_rome_data():
     """Populate knowledge base with sample Rome historical data"""
+    # First, ensure schema exists
+    init_knowledge_db()
+
     conn = sqlite3.connect('continuum_knowledge.db')
     c = conn.cursor()
 
