@@ -60,7 +60,12 @@ def cache_data(location, year, data):
 # Knowledge base functions
 def query_knowledge_base(location, year):
     """Query structured knowledge base for period-specific information"""
+    print(f"[KB Query] Called with location='{location}', year={year}")
+    print(f"[KB Query] KB_DB_PATH='{KB_DB_PATH}'")
+    print(f"[KB Query] Path exists: {os.path.exists(KB_DB_PATH)}")
+
     if not os.path.exists(KB_DB_PATH):
+        print(f"[KB Query] ERROR: KB file doesn't exist!")
         return None
 
     try:
@@ -80,8 +85,11 @@ def query_knowledge_base(location, year):
         period = c.fetchone()
 
         if not period:
+            print(f"[KB Query] No period found for {location} at year {year}")
             conn.close()
             return None
+
+        print(f"[KB Query] Found period: {period[1]}")
 
         period_id, period_name, description, source_page = period
 
@@ -110,7 +118,7 @@ def query_knowledge_base(location, year):
                 'confidence': 0.85
             }
 
-        return {
+        result = {
             'location': location,
             'year': year,
             'period': period_name,
@@ -119,8 +127,11 @@ def query_knowledge_base(location, year):
             'source_page': source_page
         }
 
+        print(f"[KB Query] Returning result with {len(categories)} categories")
+        return result
+
     except sqlite3.Error as e:
-        print(f"Knowledge base error: {e}")
+        print(f"[KB Query] ERROR: {e}")
         return None
 
 # Initialize database on startup
