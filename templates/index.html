@@ -361,7 +361,7 @@
                         <div class="time-marker" style="left: 0%;">3000 BCE</div>
                         <div class="time-marker" style="left: 20%;">2000 BCE</div>
                         <div class="time-marker" style="left: 30%;">0 CE</div>
-                        <div class="time-marker" style="left: 45%;">Medieval</div>
+                        <div class="time-marker" style="left: 45%;">500</div>
                         <div class="time-marker" style="left: 60%;">1500</div>
                         <div class="time-marker" style="left: 80%;">1900</div>
                         <div class="time-marker" style="left: 100%;">Today</div>
@@ -446,6 +446,9 @@
         const timeSlider = document.getElementById('time-slider');
         const yearDisplay = document.getElementById('year-display');
 
+        // Debounce timer for slider
+        let sliderDebounceTimer = null;
+
         timeSlider.addEventListener('input', (e) => {
             const position = parseInt(e.target.value);
             let year = sliderToYear(position);
@@ -457,6 +460,15 @@
 
             currentYear = year;
             updateYearDisplay();
+
+            // If a location has been clicked, refresh data for new year
+            if (lastClickedLocation) {
+                // Debounce to avoid too many requests while sliding
+                clearTimeout(sliderDebounceTimer);
+                sliderDebounceTimer = setTimeout(() => {
+                    fetchHistoricalInfo(lastClickedLocation.lat, lastClickedLocation.lng, currentYear);
+                }, 500); // Wait 500ms after user stops sliding
+            }
         });
 
         function updateYearDisplay() {
@@ -471,6 +483,7 @@
 
         // Map click handler
         let currentMarker = null;
+        let lastClickedLocation = null; // Track last clicked location
 
         map.on('click', async (e) => {
             const { lat, lng } = e.latlng;
@@ -480,6 +493,9 @@
                 map.removeLayer(currentMarker);
             }
             currentMarker = L.marker([lat, lng]).addTo(map);
+
+            // Store location for slider-triggered refreshes
+            lastClickedLocation = { lat, lng };
 
             // Fetch historical info
             await fetchHistoricalInfo(lat, lng, currentYear);
@@ -619,18 +635,29 @@
 
             let html = `
                 <div class="debug-item success">
-                    <label>Request</label>
-                    <value>Location: ${responseData.location}, Year: ${responseData.year}</value>
+                    <label>Request Sent</label>
+                    <div class="debug-json" style="font-size: 11px; margin-top: 5px;">
+POST /explore
+{
+  "lat": ${requestData.lat.toFixed(2)},
+  "lng": ${requestData.lng.toFixed(2)},
+  "year": ${requestData.year}
+}</div>
                 </div>
 
-                <div class="debug-item ${debugInfo.knowledge_base_hit ? 'success' : 'warning'}">
+                <div class="debug-item">
+                    <label>Detected Location</label>
+                    <value>${responseData.location}</value>
+                </div>
+
+                <div class="debug-item ${debugInfo.knowledge_base_hit ? 'success' : (debugInfo.cache_hit ? 'info' : 'warning')}">
                     <label>Data Source</label>
                     <value>${sourceOrder.join(' → ')}</value>
                 </div>
 
                 <div class="debug-item">
                     <label>Load Time</label>
-                    <value>${loadTime}ms ${responseData.from_cache ? '(cached)' : '(fresh)'}</value>
+                    <value>${loadTime}ms ${responseData.from_cache ? '⚡ cached' : '🌐 fresh'}</value>
                 </div>
 
                 <div class="debug-item">
@@ -650,8 +677,8 @@
 
             html += `
                 <div class="debug-item">
-                    <label>Full Response (F12 Console)</label>
-                    <div class="debug-json">${JSON.stringify(responseData, null, 2)}</div>
+                    <label>Full Response (also in F12 Console)</label>
+                    <div class="debug-json" style="max-height: 300px; overflow-y: auto;">${JSON.stringify(responseData, null, 2)}</div>
                 </div>
             `;
 
