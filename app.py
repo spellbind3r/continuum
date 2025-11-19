@@ -9,6 +9,7 @@ wiki = wikipediaapi.Wikipedia('Continuum/1.0 (contact@example.com)', 'en')
 
 # Database setup
 DB_PATH = 'continuum_cache.db'
+KB_DB_PATH = 'continuum_knowledge.db'
 
 def init_db():
     """Initialize SQLite database for caching"""
@@ -50,6 +51,72 @@ def cache_data(location, year, data):
     conn.commit()
     conn.close()
 
+# Knowledge base functions
+def query_knowledge_base(location, year):
+    """Query structured knowledge base for period-specific information"""
+    if not os.path.exists(KB_DB_PATH):
+        return None
+
+    try:
+        conn = sqlite3.connect(KB_DB_PATH)
+        c = conn.cursor()
+
+        # Find the period this year falls into
+        c.execute('''
+            SELECT id, period_name, description, source_page
+            FROM historical_periods
+            WHERE location = ?
+              AND start_year <= ?
+              AND end_year >= ?
+            LIMIT 1
+        ''', (location, year, year))
+
+        period = c.fetchone()
+
+        if not period:
+            conn.close()
+            return None
+
+        period_id, period_name, description, source_page = period
+
+        # Get facts for this period
+        c.execute('''
+            SELECT category, content, confidence
+            FROM period_facts
+            WHERE period_id = ?
+        ''', (period_id,))
+
+        facts = c.fetchall()
+        conn.close()
+
+        # Structure the response
+        categories = {}
+        for category, content, confidence in facts:
+            categories[category] = {
+                'content': content,
+                'confidence': confidence
+            }
+
+        # Add default categories if missing
+        if 'overview' not in categories and description:
+            categories['overview'] = {
+                'content': description,
+                'confidence': 0.85
+            }
+
+        return {
+            'location': location,
+            'year': year,
+            'period': period_name,
+            'categories': categories if categories else None,
+            'source': 'knowledge_base',
+            'source_page': source_page
+        }
+
+    except sqlite3.Error as e:
+        print(f"Knowledge base error: {e}")
+        return None
+
 # Initialize database on startup
 init_db()
 
@@ -72,16 +139,42 @@ def explore():
     cached_info = get_cached_data(location_name, year)
     if cached_info:
         cached_info['from_cache'] = True
+        cached_info['debug_info'] = {
+            'source_order': ['cache'],
+            'cache_hit': True
+        }
         return jsonify(cached_info)
 
-    # Fetch Wikipedia info if not cached
-    info = fetch_historical_info(location_name, year)
-    info['from_cache'] = False
+    # Try knowledge base first
+    kb_info = query_knowledge_base(location_name, year)
+
+    if kb_info and kb_info.get('categories'):
+        # Knowledge base has data for this period
+        kb_info['from_cache'] = False
+        kb_info['debug_info'] = {
+            'source_order': ['knowledge_base'],
+            'knowledge_base_hit': True,
+            'period': kb_info.get('period'),
+            'source_page': kb_info.get('source_page')
+        }
+
+        # Cache the knowledge base result
+        cache_data(location_name, year, kb_info)
+        return jsonify(kb_info)
+
+    # Fallback to Wikipedia API
+    wiki_info = fetch_historical_info(location_name, year)
+    wiki_info['from_cache'] = False
+    wiki_info['debug_info'] = {
+        'source_order': ['knowledge_base', 'wikipedia_api'],
+        'knowledge_base_hit': False,
+        'wikipedia_api_hit': True
+    }
 
     # Cache the result
-    cache_data(location_name, year, info)
+    cache_data(location_name, year, wiki_info)
 
-    return jsonify(info)
+    return jsonify(wiki_info)
 
 def get_nearest_city(lat, lng):
     """Simple mapping of coordinates to major cities"""
