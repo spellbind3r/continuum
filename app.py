@@ -15,7 +15,7 @@ DB_PATH = os.path.join(BASE_DIR, 'continuum_cache.db')
 KB_DB_PATH = os.path.join(BASE_DIR, 'continuum_knowledge.db')
 
 # Version number (from git commits)
-VERSION = 'v0.1.5'  # Update this with each significant change
+VERSION = 'v0.1.6-debug'  # Update this with each significant change
 
 def init_db():
     """Initialize SQLite database for caching"""
