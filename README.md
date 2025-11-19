@@ -15,56 +15,110 @@ An interactive time-traveling world explorer that lets you click anywhere on Ear
    pip install -r requirements.txt
    ```
 
-2. **Run the app:**
+2. **Populate the knowledge base** (first time only):
+   ```bash
+   python scripts/populate_all_cities.py
+   ```
+
+3. **Run the app:**
    ```bash
    python app.py
    ```
 
-3. **Open your browser:**
+4. **Open your browser:**
    ```
    http://localhost:5000
    ```
 
-4. **Explore!**
+5. **Explore!**
    - Use the time slider to travel through history (3000 BCE to present)
-   - Click anywhere on the map
-   - See what was happening at that location and time
+   - Click on any of the 15 cities on the map
+   - See detailed historical information for that period
+   - Click "🔄 Dig Deeper" to bypass cache
+   - Click "✨ Tell me more!" for AI-enhanced narrative (requires API key)
+
+### ✨ Optional: AI Enhancement Setup
+
+To enable the AI-powered narrative enhancement feature:
+
+1. **Get an Anthropic API key:**
+   - Sign up at https://console.anthropic.com/
+   - Get your API key from the dashboard
+
+2. **Create a `.env` file** in the project root:
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Add your API key** to `.env`:
+   ```
+   ANTHROPIC_API_KEY=your_actual_api_key_here
+   ```
+
+4. **Restart the app** and look for this message:
+   ```
+   [LLM] Anthropic integration enabled with model: claude-3-5-sonnet-20241022
+   ```
+
+5. **Use the feature:**
+   - Click on a city and time period
+   - The "✨ Tell me more!" button will appear
+   - Click it to get an AI-generated narrative that brings the period to life
+
+**Note:** The AI enhancement feature is completely optional. The app works great without it using the curated knowledge base!
 
 ## 📖 How It Works (Right Now)
 
-**Current Version (v0.1 - "Proof of Concept"):**
-- Simple 2D world map (Leaflet.js)
-- Time slider from 3000 BCE to 2024 CE
-- Click any location → finds nearest major city
-- Fetches Wikipedia info for that location
-- Shows information in knowledge categories
-- Displays confidence score (how much we know)
+**Current Version (v0.3.0-llm - "LLM Enhanced"):**
+- **15 Cities Covered:** Rome, Athens, Cairo, Baghdad, Beijing, London, Paris, Delhi, Istanbul, Venice, Kyiv, Jerusalem, Xi'an, Mexico City, Cuzco
+- **56 Historical Periods:** From 3100 BCE to 1920 CE with detailed period-specific information
+- **Knowledge Base:** Structured historical data with Politics, Culture, Religion categories
+- **Smart Time Slider:** Logarithmic scale (more detail for recent history)
+- **Caching System:** Fast response times with SQLite cache
+- **"Dig Deeper" Feature:** Bypass cache for fresh knowledge base queries
+- **✨ AI Enhancement (NEW!):** Optional LLM-powered narrative enhancement for richer storytelling
+- **Debug Panel:** Transparent view of data sources and request flow
 
 **What's Next:**
-- Better location detection (not just major cities)
-- Improved historical information extraction
-- Add more knowledge categories
-- Better confidence scoring
-- Cache results (SQLite)
-- More beautiful UI
+- Visual timeline display for each city
+- Connections between cities at same time period
+- More cities and historical periods
+- Year-specific events
+- Advanced LLM features (comparative analysis, natural language queries)
 
 ## 🏗️ Project Structure
 
 ```
 continuum/
-├── app.py              # Flask server (main backend)
+├── app.py                          # Flask server (main backend with LLM integration)
 ├── templates/
-│   └── index.html      # Frontend (map + UI)
-├── requirements.txt    # Python dependencies
-└── README.md          # This file
+│   └── index.html                  # Frontend (map + UI + LLM button)
+├── scripts/
+│   ├── populate_all_cities.py      # Populate knowledge base with all 15 cities
+│   ├── populate_sample_data.py     # Populate sample data (Rome only)
+│   └── test_all_cities.py          # Automated quality tests for all cities
+├── continuum_knowledge.db          # Knowledge base (created by populate script)
+├── continuum_cache.db              # Query cache (created automatically)
+├── .env                            # Environment variables (create from .env.example)
+├── .env.example                    # Template for environment variables
+├── requirements.txt                # Python dependencies
+├── README.md                       # This file
+├── CITIES_COVERAGE.md              # Detailed list of all historical periods
+├── NEXT_STEPS.md                   # Development roadmap
+└── CLAUDE.md                       # AI assistant development guide
 ```
 
-## 🛠️ Technology Stack (Simple!)
+## 🛠️ Technology Stack
 
-- **Backend:** Python + Flask (just a simple web server)
+- **Backend:** Python + Flask
 - **Frontend:** Plain HTML + CSS + JavaScript (no frameworks!)
-- **Map:** Leaflet.js (simple, no React needed)
-- **Data:** Wikipedia API (real-time, no database yet)
+- **Map:** Leaflet.js (2D interactive map)
+- **Database:** SQLite (knowledge base + cache)
+- **AI/LLM:** Anthropic Claude API (optional enhancement)
+- **Data Sources:**
+  - Curated knowledge base (56 historical periods)
+  - Wikipedia API (fallback for uncovered periods)
+  - Claude AI (optional narrative enhancement)
 
 ## 💡 Your Learning Path
 
@@ -91,15 +145,23 @@ continuum/
 - Timeline visualization
 - Much richer data
 
-## 🎯 Current Limitations (We'll Fix These!)
+## 🎯 Current Scope & Limitations
 
-1. **Only major cities work well** - clicking random ocean gives nearest city
-2. **Wikipedia only** - no specialized historical sources yet
-3. **Simple info extraction** - not very smart about categories yet
-4. **No caching** - same query hits Wikipedia every time
-5. **2D map** - not the 3D globe from your vision yet
+**What Works Great:**
+- ✅ 15 major cities with rich historical data
+- ✅ 56 historical periods (3100 BCE to 1920 CE)
+- ✅ Fast caching system
+- ✅ Debug panel for transparency
+- ✅ Optional AI enhancement
 
-**But that's OK!** This is your Day 1. Every improvement from here is progress you can see.
+**Known Limitations:**
+1. **Limited cities** - Only 15 cities currently have detailed historical data
+2. **Coverage gaps** - Modern periods (after 1920) fall back to Wikipedia
+3. **City-centric** - Clicking outside cities finds nearest major city
+4. **2D map** - Not the 3D globe from original vision (planned for future)
+5. **LLM costs** - AI enhancement requires API key and has usage costs
+
+**But that's OK!** Every query is transparent about its source and confidence level.
 
 ## 🔧 Customizing
 

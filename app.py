@@ -3,6 +3,11 @@ import wikipediaapi
 import sqlite3
 import json
 import os
+from dotenv import load_dotenv
+from anthropic import Anthropic
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 wiki = wikipediaapi.Wikipedia('Continuum/1.0 (contact@example.com)', 'en')
@@ -10,12 +15,24 @@ wiki = wikipediaapi.Wikipedia('Continuum/1.0 (contact@example.com)', 'en')
 # Get the directory where app.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Initialize Anthropic client (if API key is available)
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY')
+ANTHROPIC_MODEL = os.getenv('ANTHROPIC_MODEL', 'claude-3-5-sonnet-20241022')
+ENABLE_LLM = os.getenv('ENABLE_LLM', 'true').lower() == 'true' and ANTHROPIC_API_KEY
+
+if ENABLE_LLM:
+    anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    print(f"[LLM] Anthropic integration enabled with model: {ANTHROPIC_MODEL}")
+else:
+    anthropic_client = None
+    print("[LLM] Anthropic integration disabled (no API key found)")
+
 # Database setup - use absolute paths
 DB_PATH = os.path.join(BASE_DIR, 'continuum_cache.db')
 KB_DB_PATH = os.path.join(BASE_DIR, 'continuum_knowledge.db')
 
 # Version number (from git commits)
-VERSION = 'v0.2.0-allcities'  # Update this with each significant change
+VERSION = 'v0.3.0-llm'  # LLM integration for enhanced narratives
 
 def init_db():
     """Initialize SQLite database for caching"""
@@ -134,6 +151,77 @@ def query_knowledge_base(location, year):
         print(f"[KB Query] ERROR: {e}")
         return None
 
+def enhance_with_llm(location, year, kb_data):
+    """Enhance knowledge base data with LLM-generated insights"""
+    if not ENABLE_LLM or not anthropic_client:
+        print("[LLM] Enhancement not available (LLM disabled or no API key)")
+        return None
+
+    try:
+        print(f"[LLM] Enhancing data for {location} at year {year}")
+
+        # Build context from knowledge base data
+        period_name = kb_data.get('period', 'Unknown Period')
+        categories = kb_data.get('categories', {})
+
+        # Extract category content for context
+        context_parts = [f"Historical Period: {period_name}", f"Location: {location}", f"Year: {year}", ""]
+
+        for category, data in categories.items():
+            if isinstance(data, dict) and 'content' in data:
+                context_parts.append(f"{category.upper()}: {data['content']}")
+
+        context = "\n\n".join(context_parts)
+
+        # Create prompt for LLM
+        prompt = f"""Based on the following historical information, provide additional engaging insights and context that would help someone understand what life was like in {location} around the year {year}.
+
+{context}
+
+Please provide:
+1. A vivid narrative description (2-3 paragraphs) that brings this period to life
+2. Notable figures or events from this specific time
+3. Daily life details (what people ate, wore, how they lived)
+4. Interesting lesser-known facts that aren't in the basic overview
+
+Write in an engaging, educational style that captures the wonder of this historical period. Be specific to the year range when possible."""
+
+        # Call Anthropic API
+        message = anthropic_client.messages.create(
+            model=ANTHROPIC_MODEL,
+            max_tokens=1500,
+            temperature=0.7,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        llm_response = message.content[0].text
+
+        print(f"[LLM] Successfully generated {len(llm_response)} characters of enhanced content")
+
+        # Structure the enhanced response
+        enhanced_data = {
+            'location': location,
+            'year': year,
+            'period': period_name,
+            'categories': categories,  # Keep original KB categories
+            'enhanced_narrative': {
+                'content': llm_response,
+                'confidence': 0.75,  # LLM content is well-informed but not primary source
+                'source': 'llm_enhanced'
+            },
+            'source': 'knowledge_base_with_llm_enhancement',
+            'source_page': kb_data.get('source_page'),
+            'llm_model': ANTHROPIC_MODEL
+        }
+
+        return enhanced_data
+
+    except Exception as e:
+        print(f"[LLM] ERROR during enhancement: {e}")
+        return None
+
 # Initialize database on startup
 init_db()
 
@@ -154,18 +242,20 @@ def explore():
     lng = data.get('lng')
     year = data.get('year', 2024)
     bypass_cache = data.get('bypass_cache', False)
+    use_llm = data.get('use_llm', False)  # New parameter for LLM enhancement
 
     # Simple geocoding - map coordinates to known cities (for demo)
     location_name = get_nearest_city(lat, lng)
 
     # Check cache first (unless bypassing)
-    if not bypass_cache:
+    if not bypass_cache and not use_llm:  # Don't use cache for LLM requests
         cached_info = get_cached_data(location_name, year)
         if cached_info:
             cached_info['from_cache'] = True
             cached_info['debug_info'] = {
                 'source_order': ['cache'],
-                'cache_hit': True
+                'cache_hit': True,
+                'llm_available': ENABLE_LLM
             }
             return jsonify(cached_info)
 
@@ -173,17 +263,36 @@ def explore():
     kb_info = query_knowledge_base(location_name, year)
 
     if kb_info and kb_info.get('categories'):
-        # Knowledge base has data for this period
+        # If LLM enhancement is requested and available
+        if use_llm and ENABLE_LLM:
+            enhanced_info = enhance_with_llm(location_name, year, kb_info)
+
+            if enhanced_info:
+                enhanced_info['from_cache'] = False
+                enhanced_info['debug_info'] = {
+                    'source_order': ['cache (bypassed)', 'knowledge_base', 'llm_enhancement'],
+                    'knowledge_base_hit': True,
+                    'llm_enhanced': True,
+                    'cache_bypassed': True,
+                    'period': enhanced_info.get('period'),
+                    'source_page': enhanced_info.get('source_page'),
+                    'llm_model': ANTHROPIC_MODEL
+                }
+                # Don't cache LLM responses (expensive and may vary)
+                return jsonify(enhanced_info)
+
+        # Knowledge base has data for this period (standard response)
         kb_info['from_cache'] = False
         kb_info['debug_info'] = {
             'source_order': ['cache (bypassed)', 'knowledge_base'] if bypass_cache else ['knowledge_base'],
             'knowledge_base_hit': True,
             'cache_bypassed': bypass_cache,
             'period': kb_info.get('period'),
-            'source_page': kb_info.get('source_page')
+            'source_page': kb_info.get('source_page'),
+            'llm_available': ENABLE_LLM
         }
 
-        # Cache the knowledge base result
+        # Cache the knowledge base result (but not LLM enhanced)
         cache_data(location_name, year, kb_info)
         return jsonify(kb_info)
 

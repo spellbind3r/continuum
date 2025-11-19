@@ -311,6 +311,77 @@
             cursor: wait;
         }
 
+        .llm-button {
+            position: fixed;
+            bottom: 20px;
+            right: 320px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: #fff;
+            border: 2px solid #f093fb;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .llm-button.show {
+            display: block;
+        }
+
+        .llm-button:hover {
+            background: linear-gradient(135deg, #f5576c 0%, #f093fb 100%);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .llm-button:active {
+            transform: scale(0.98);
+        }
+
+        .llm-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .llm-button.enhancing {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        /* Enhanced narrative styling */
+        .enhanced-narrative {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+            border: 2px solid #f093fb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            position: relative;
+        }
+
+        .enhanced-narrative::before {
+            content: "✨ AI-Enhanced Narrative";
+            position: absolute;
+            top: -12px;
+            left: 15px;
+            background: #0a1929;
+            padding: 2px 10px;
+            font-size: 11px;
+            color: #f093fb;
+            font-weight: 600;
+            border-radius: 10px;
+        }
+
+        .enhanced-narrative .content {
+            color: #e0e0e0;
+            line-height: 1.8;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+
         .debug-panel {
             position: fixed;
             bottom: 70px;
@@ -418,6 +489,7 @@
 
     <!-- Debug Panel and Controls -->
     <button class="refresh-button" id="refresh-button" onclick="forceRefresh()">🔄 Dig Deeper</button>
+    <button class="llm-button" id="llm-button" onclick="enhanceWithLLM()">✨ Tell me more!</button>
     <button class="debug-toggle" onclick="toggleDebug()">🔧 Debug</button>
     <div class="debug-panel" id="debug-panel">
         <h3>🔍 Debug Information</h3>
@@ -541,12 +613,16 @@
             await fetchHistoricalInfo(lat, lng, currentYear);
         });
 
-        async function fetchHistoricalInfo(lat, lng, year, bypassCache = false) {
+        async function fetchHistoricalInfo(lat, lng, year, bypassCache = false, useLLM = false) {
             const infoPanel = document.getElementById('info-panel');
+            let loadingMsg = '🔍 Searching through time...';
+            if (useLLM) loadingMsg = '✨ Enhancing with AI...';
+            else if (bypassCache) loadingMsg = '🔍 Digging deeper...';
+
             infoPanel.innerHTML = `
                 <div class="loading-message">
                     <div class="spinner"></div>
-                    <p>🔍 ${bypassCache ? 'Digging deeper...' : 'Searching through time...'}</p>
+                    <p>${loadingMsg}</p>
                 </div>
             `;
 
@@ -557,7 +633,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ lat, lng, year, bypass_cache: bypassCache })
+                    body: JSON.stringify({ lat, lng, year, bypass_cache: bypassCache, use_llm: useLLM })
                 });
 
                 const data = await response.json();
@@ -567,7 +643,7 @@
                 data.loadTime = loadTime;
 
                 // Update debug panel
-                updateDebugPanel({ lat, lng, year, bypass_cache: bypassCache }, data, loadTime);
+                updateDebugPanel({ lat, lng, year, bypass_cache: bypassCache, use_llm: useLLM }, data, loadTime);
 
                 displayInfo(data);
             } catch (error) {
@@ -638,7 +714,29 @@
                 `;
             }
 
+            // Display LLM-enhanced narrative if present
+            if (data.enhanced_narrative) {
+                html += `
+                    <div class="enhanced-narrative fade-in">
+                        <div class="content">${data.enhanced_narrative.content}</div>
+                    </div>
+                `;
+            }
+
             infoPanel.innerHTML = html;
+
+            // Show LLM button if available and data is from knowledge base
+            const llmButton = document.getElementById('llm-button');
+            const debugInfo = data.debug_info || {};
+            const llmAvailable = debugInfo.llm_available !== false;
+            const hasKBData = debugInfo.knowledge_base_hit === true;
+
+            if (llmAvailable && hasKBData && !data.enhanced_narrative) {
+                llmButton.classList.add('show');
+            } else if (data.enhanced_narrative) {
+                // Hide button once enhanced
+                llmButton.classList.remove('show');
+            }
         }
 
         function scrollToCategory(category) {
@@ -684,9 +782,43 @@
                     currentYear,
                     true // bypass_cache
                 );
+
+                // Show LLM button after successful knowledge base fetch
+                const llmButton = document.getElementById('llm-button');
+                llmButton.classList.add('show');
             } finally {
                 button.classList.remove('refreshing');
                 button.textContent = '🔄 Dig Deeper';
+            }
+        }
+
+        async function enhanceWithLLM() {
+            if (!lastClickedLocation) {
+                alert('Please click on a location first!');
+                return;
+            }
+
+            const button = document.getElementById('llm-button');
+            button.classList.add('enhancing');
+            button.disabled = true;
+            button.textContent = '✨ Enhancing...';
+
+            try {
+                // Request LLM enhancement
+                await fetchHistoricalInfo(
+                    lastClickedLocation.lat,
+                    lastClickedLocation.lng,
+                    currentYear,
+                    true,  // bypass_cache
+                    true   // use_llm
+                );
+            } catch (error) {
+                console.error('LLM enhancement error:', error);
+                alert('Failed to enhance with AI. Please check your API key configuration.');
+            } finally {
+                button.classList.remove('enhancing');
+                button.disabled = false;
+                button.textContent = '✨ Tell me more!';
             }
         }
 
