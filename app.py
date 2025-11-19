@@ -7,9 +7,15 @@ import os
 app = Flask(__name__)
 wiki = wikipediaapi.Wikipedia('Continuum/1.0 (contact@example.com)', 'en')
 
-# Database setup
-DB_PATH = 'continuum_cache.db'
-KB_DB_PATH = 'continuum_knowledge.db'
+# Get the directory where app.py is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Database setup - use absolute paths
+DB_PATH = os.path.join(BASE_DIR, 'continuum_cache.db')
+KB_DB_PATH = os.path.join(BASE_DIR, 'continuum_knowledge.db')
+
+# Version number (from git commits)
+VERSION = 'v0.1.5'  # Update this with each significant change
 
 def init_db():
     """Initialize SQLite database for caching"""
@@ -122,7 +128,12 @@ init_db()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', version=VERSION)
+
+@app.route('/version')
+def version():
+    """Return current version"""
+    return jsonify({'version': VERSION})
 
 @app.route('/explore', methods=['POST'])
 def explore():
