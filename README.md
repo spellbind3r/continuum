@@ -69,19 +69,27 @@ To enable the AI-powered narrative enhancement feature:
 
 ## 📖 How It Works (Right Now)
 
-**Current Version (v0.3.0-llm - "LLM Enhanced"):**
+**Current Version (v0.4.0-globe - "3D Globe with Historical Boundaries"):**
 - **15 Cities Covered:** Rome, Athens, Cairo, Baghdad, Beijing, London, Paris, Delhi, Istanbul, Venice, Kyiv, Jerusalem, Xi'an, Mexico City, Cuzco
 - **56 Historical Periods:** From 3100 BCE to 1920 CE with detailed period-specific information
 - **Knowledge Base:** Structured historical data with Politics, Culture, Religion categories
+- **🌍 3D Globe View (NEW!):** Toggle between 2D map and interactive 3D globe with topography
+- **⚔️ Historical Boundaries (NEW!):** See kingdoms, empires, and regions change as you move through time
+  - 30+ historical entities: Roman Empire, Persian Empire, Chinese Dynasties, Islamic Caliphates, and more
+  - Boundaries automatically update as you move the time slider
+  - Click polygons to see kingdom details (name, type, period, capital)
 - **Smart Time Slider:** Logarithmic scale (more detail for recent history)
 - **Caching System:** Fast response times with SQLite cache
 - **"Dig Deeper" Feature:** Bypass cache for fresh knowledge base queries
-- **✨ AI Enhancement (NEW!):** Optional LLM-powered narrative enhancement for richer storytelling
+- **✨ AI Enhancement:** Optional LLM-powered narrative enhancement for richer storytelling
+- **Layer Controls:** Toggle different historical layers (kingdoms active, languages/religions coming soon)
 - **Debug Panel:** Transparent view of data sources and request flow
 
 **What's Next:**
+- Language distribution maps (historical linguistics)
+- Religion spread visualization
 - Visual timeline display for each city
-- Connections between cities at same time period
+- Connections/trade routes between cities at same time period
 - More cities and historical periods
 - Year-specific events
 - Advanced LLM features (comparative analysis, natural language queries)
@@ -92,7 +100,10 @@ To enable the AI-powered narrative enhancement feature:
 continuum/
 ├── app.py                          # Flask server (main backend with LLM integration)
 ├── templates/
-│   └── index.html                  # Frontend (map + UI + LLM button)
+│   └── index.html                  # Frontend (2D map + 3D globe + UI)
+├── static/
+│   └── js/
+│       └── historical_boundaries.js # Historical kingdoms/empires data (30+ entities)
 ├── scripts/
 │   ├── populate_all_cities.py      # Populate knowledge base with all 15 cities
 │   ├── populate_sample_data.py     # Populate sample data (Rome only)
@@ -112,11 +123,14 @@ continuum/
 
 - **Backend:** Python + Flask
 - **Frontend:** Plain HTML + CSS + JavaScript (no frameworks!)
-- **Map:** Leaflet.js (2D interactive map)
+- **Visualization:**
+  - **2D Map:** Leaflet.js (interactive flat map)
+  - **3D Globe:** Globe.gl + Three.js (WebGL globe with topography)
 - **Database:** SQLite (knowledge base + cache)
 - **AI/LLM:** Anthropic Claude API (optional enhancement)
 - **Data Sources:**
   - Curated knowledge base (56 historical periods)
+  - Historical boundaries dataset (30+ kingdoms/empires)
   - Wikipedia API (fallback for uncovered periods)
   - Claude AI (optional narrative enhancement)
 
@@ -150,6 +164,8 @@ continuum/
 **What Works Great:**
 - ✅ 15 major cities with rich historical data
 - ✅ 56 historical periods (3100 BCE to 1920 CE)
+- ✅ 3D globe with topography and historical boundaries
+- ✅ 30+ historical kingdoms/empires visualized
 - ✅ Fast caching system
 - ✅ Debug panel for transparency
 - ✅ Optional AI enhancement
@@ -158,8 +174,9 @@ continuum/
 1. **Limited cities** - Only 15 cities currently have detailed historical data
 2. **Coverage gaps** - Modern periods (after 1920) fall back to Wikipedia
 3. **City-centric** - Clicking outside cities finds nearest major city
-4. **2D map** - Not the 3D globe from original vision (planned for future)
-5. **LLM costs** - AI enhancement requires API key and has usage costs
+4. **Simplified boundaries** - Historical borders are approximate rectangles/polygons (GeaCron-quality data planned)
+5. **Kingdoms only** - Language and religion layers are placeholders (coming soon)
+6. **LLM costs** - AI enhancement requires API key and has usage costs
 
 **But that's OK!** Every query is transparent about its source and confidence level.
 
